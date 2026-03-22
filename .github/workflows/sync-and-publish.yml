@@ -78,7 +78,7 @@ jobs:
 
       - name: Update last synced tag
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           gh api \
             --method PATCH \
