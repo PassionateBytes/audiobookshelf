@@ -54,7 +54,8 @@ jobs:
     steps:
       - name: Sync fork default branch with upstream
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN can never write .github/workflows; upstream syncs may include workflow changes
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           gh api \
             --method POST \
