@@ -1,0 +1,37 @@
+---
+name: PAT Permission Check
+
+on:
+  workflow_dispatch:
+
+env:
+  UPSTREAM_REPO: advplyr/audiobookshelf
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Probe PAT_TOKEN permissions
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set +e
+          PROBE_REF="refs/heads/pat-probe-${GITHUB_RUN_ID}"
+          MASTER_SHA=$(gh api "repos/$REPO/git/ref/heads/master" --jq '.object.sha')
+          UPSTREAM_SHA=$(gh api "repos/$UPSTREAM_REPO/commits/master" --jq '.sha')
+
+          echo "== Variables: read"
+          gh api "repos/$REPO/actions/variables" --jq '"ok, \(.total_count) variable(s)"'
+
+          # A ref at the current master commit adds no new files, so only Contents: write is needed
+          echo "== Contents: write"
+          gh api --method POST "repos/$REPO/git/refs" -f ref="$PROBE_REF" -f sha="$MASTER_SHA" --jq '"ok, created \(.ref)"' \
+            && gh api --method DELETE "repos/$REPO/git/$PROBE_REF" && echo "ok, deleted"
+
+          # A ref at upstream master brings in upstream workflow files, which also needs Workflows: write
+          echo "== Contents + Workflows: write"
+          gh api --method POST "repos/$REPO/git/refs" -f ref="$PROBE_REF-wf" -f sha="$UPSTREAM_SHA" --jq '"ok, created \(.ref)"' \
+            && gh api --method DELETE "repos/$REPO/git/$PROBE_REF-wf" && echo "ok, deleted"
+
+          exit 0
